@@ -51,10 +51,8 @@ namespace games.noio.InputHints
 
         #endregion
 
-        public override string GetSprite(InputAction action)
+        public string GetSprite(InputAction action)
         {
-            base.GetSprite(action);
-
             if (_usedControlType == null || _usedControlType.IsEmpty)
             {
                 _usedControlType = GetControlType(InputHints.UsedDevice);
