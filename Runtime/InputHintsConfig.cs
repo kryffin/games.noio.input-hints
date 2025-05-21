@@ -51,8 +51,10 @@ namespace games.noio.InputHints
 
         #endregion
 
-        public string GetSprite(InputAction action)
+        public override string GetSprite(InputAction action)
         {
+            base.GetSprite(action);
+
             if (_usedControlType == null || _usedControlType.IsEmpty)
             {
                 _usedControlType = GetControlType(InputHints.UsedDevice);
@@ -60,72 +62,71 @@ namespace games.noio.InputHints
 
             var bindingIndex = action.GetBindingIndex(_usedControlType.InputControlScheme);
 
-            // if (action.bindings[bindingIndex].isPartOfComposite)
-            // {
-            //     PrintBinding(action, bindingIndex - 1);
-            // }
-
             if (bindingIndex <= -1)
             {
-#if UNITY_EDITOR
+    #if UNITY_EDITOR
                 Debug.LogWarning($"No binding found for \"{action.name}\" " +
-                                 $"with Control Scheme \"{_usedControlType.InputControlScheme}\"",this);
-#endif
+                                $"with Control Scheme \"{_usedControlType.InputControlScheme}\"",this);
+    #endif
                 return $"[{action.name}]";
             }
 
             var path = action.bindings[bindingIndex].path;
 
-            InputControlPath.ToHumanReadableString(path, out _, out var controlPath);
+            List<string> controlPaths = new List<string>();
 
-            // PrintBinding(action, bindingIndex);
-
-            // var bindingString = action.GetBindingDisplayString(bindingIndex,
-            // InputBinding.DisplayStringOptions.DontIncludeInteractions);
-
-            foreach (var sprite in _sprites)
-            {
-                if (sprite.ControlPath == controlPath)
-                {
-                    /*
-                     * See if there is a sprite mapping that matches any of the sprite
-                     * sheets defined by the current ControlType
-                     * The ControlType is set by the current used device.
-                     *
-                     * So:
-                     *
-                     * 1. If an Xbox controller is used, that determines the Control Type "Gamepad".
-                     * 2. The Gamepad control type defines a "gamepad" sprite sheet so
-                     * 3. We look for a sprite mapping that uses the "gamepad" sprite sheet
-                     *
-                     * ControlTypes can define MULTIPLE sprite sheets, e.g. "mouse" and "keyboard",
-                     * and we just look for a sprite that matches ANY of the sprite sheets defined
-                     * by the current ControlType
-                     */
-                    var asset =
-                        _usedControlType.SpriteAssets.FirstOrDefault(
-                            m => m.SpriteCategory == sprite.SpriteCategory);
-
-                    if (asset == null)
-                    {
-                        continue;
+            if (action.bindings[bindingIndex].isPartOfComposite) {
+                for (int i = bindingIndex; i < action.bindings.Count; i++) {
+                    InputControlPath.ToHumanReadableString(action.bindings[i].path, out var _, out var key);
+                    if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
+                        InputControl localizedKey = Keyboard.current.TryGetChildControl(action.bindings[i].ToDisplayString());
+                        controlPaths.Add(localizedKey == null ? key : localizedKey.displayName.ToLower());
                     }
-
-                    return string.Format(_spriteFormat, asset.SpriteAsset.name, sprite.SpriteName);
+                }
+            } else {
+                InputControlPath.ToHumanReadableString(path, out var _, out var key);
+                if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
+                    InputControl localizedKey = Keyboard.current.TryGetChildControl(action.GetBindingDisplayString());
+                    controlPaths.Add(localizedKey == null ? key : localizedKey.name);
                 }
             }
 
-#if UNITY_EDITOR
-            Debug.LogWarning($"[No sprite found for \"{controlPath}\"]", this);
-            if (_missingControlPaths.Any(mcp => mcp.Matches(controlPath, _usedControlType)) == false)
+            StringBuilder res = new StringBuilder();
+            foreach (string controlPath in controlPaths)
             {
-                Debug.Log("Adding missing control path entry");
-                _missingControlPaths.Add(new MissingControlPath(controlPath, _usedControlType));
-                EditorUtility.SetDirty(this);
-            }
-#endif
+                bool found = false;
+                foreach (var sprite in _sprites)
+                {
+                    if (sprite.ControlPath == controlPath)
+                    {
+                        var asset =
+                            _usedControlType.SpriteAssets.FirstOrDefault(
+                                m => m.SpriteCategory == sprite.SpriteCategory);
 
-            return $"[{controlPath}]";
+                        if (asset == null)
+                        {
+                            continue;
+                        }
+
+                        res.Append(string.Format(_spriteFormat, asset.SpriteAsset.name, sprite.SpriteName));
+                        found = true;
+                        break;
+                    }
+                }
+    #if UNITY_EDITOR
+                if (!found) {
+                    Debug.LogWarning($"[No sprite found for \"{controlPath}\"]", this);
+                    if (_missingControlPaths.Any(mcp => mcp.Matches(controlPath, _usedControlType)) == false)
+                    {
+                        Debug.Log("Adding missing control path entry");
+                        _missingControlPaths.Add(new MissingControlPath(controlPath, _usedControlType));
+                        EditorUtility.SetDirty(this);
+                    }
+                }
+    #endif
+            }
+
+            return res.ToString();
         }
 
         void PrintBinding(InputAction action, int bindingIndex)
