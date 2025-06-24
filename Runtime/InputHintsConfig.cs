@@ -80,6 +80,8 @@ namespace games.noio.InputHints
                     if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
                         InputControl localizedKey = Keyboard.current.TryGetChildControl(action.bindings[i].ToDisplayString());
                         controlPaths.Add(localizedKey == null ? key : localizedKey.displayName.ToLower());
+                    } else {
+                        controlPaths.Add(key);
                     }
                 }
             } else {
@@ -87,6 +89,8 @@ namespace games.noio.InputHints
                 if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
                     InputControl localizedKey = Keyboard.current.TryGetChildControl(action.GetBindingDisplayString());
                     controlPaths.Add(localizedKey == null ? key : localizedKey.name);
+                } else {
+                    controlPaths.Add(key);
                 }
             }
 
