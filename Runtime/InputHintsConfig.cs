@@ -75,22 +75,27 @@ namespace games.noio.InputHints
             List<string> controlPaths = new List<string>();
 
             if (action.bindings[bindingIndex].isPartOfComposite) {
-                for (int i = bindingIndex; i < action.bindings.Count; i++) {
-                    InputControlPath.ToHumanReadableString(action.bindings[i].path, out var _, out var key);
-                    if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
-                        InputControl localizedKey = Keyboard.current.TryGetChildControl(action.bindings[i].ToDisplayString());
-                        controlPaths.Add(localizedKey == null ? key : localizedKey.displayName.ToLower());
-                    } else {
+                for (int i = bindingIndex; i < action.bindings.Count; i++)
+                {
+                    if (action.GetBindingDisplayString(i).Length > 1)
+                    {
+                        InputControlPath.ToHumanReadableString(action.bindings[i].path, out var _, out var key);
                         controlPaths.Add(key);
+                    }
+                    else
+                    {
+                        controlPaths.Add(action.GetBindingDisplayString(i));
                     }
                 }
             } else {
-                InputControlPath.ToHumanReadableString(path, out var _, out var key);
-                if (_usedControlType.InputControlScheme == "Keyboard&Mouse") {
-                    InputControl localizedKey = Keyboard.current.TryGetChildControl(action.GetBindingDisplayString());
-                    controlPaths.Add(localizedKey == null ? key : localizedKey.name);
-                } else {
+                if (action.GetBindingDisplayString(bindingIndex).Length > 1)
+                {
+                    InputControlPath.ToHumanReadableString(path, out var _, out var key);
                     controlPaths.Add(key);
+                }
+                else
+                {
+                    controlPaths.Add(action.GetBindingDisplayString(bindingIndex));
                 }
             }
 
